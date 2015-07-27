@@ -3,6 +3,8 @@ package cache
 import (
 	"strconv"
 	"errors"
+	"regexp"
+	"log"
 )
 
 var KeyNotExists = errors.New("KeyNotExists")
@@ -30,12 +32,19 @@ func Setup(saveDir string) {
 }
 
 func doIncr(name, key, val string) *result {
-	_val, _ := strconv.ParseInt(val, 10, 64)
+	if key == "" {
+		return &result{Ret:RET_ERROR, Data:"Key Name Not Empty!"}
+	}
+	if len(key) > 255 {
+		return &result{Ret:RET_ERROR, Data:"Key Name Too Long!"}
+	}
 
 	g, ok := Groups.Get(name)
 	if !ok {
 		return &result{Ret:RET_GROUP_NOT_EXISTS, Data:GroupNotExists}
 	}
+
+	_val, _ := strconv.ParseInt(val, 10, 64)
 
 	newVal := g.Incr(key, _val)
 
@@ -43,6 +52,13 @@ func doIncr(name, key, val string) *result {
 }
 
 func doSet(name, key, val string) *result {
+	if key == "" {
+		return &result{Ret:RET_ERROR, Data:"Key Name Not Empty!"}
+	}
+	if len(key) > 255 {
+		return &result{Ret:RET_ERROR, Data:"Key Name Too Long!"}
+	}
+
 	g, ok := Groups.Get(name)
 	if !ok {
 		return &result{Ret:RET_GROUP_NOT_EXISTS, Data:GroupNotExists}
@@ -99,7 +115,28 @@ func doGroupCreate(name, num, save, status, miss, evict string) *result {
 	_save, _ := strconv.ParseInt(save, 10, 32)
 	_status, _ := strconv.ParseInt(status, 10, 32)
 
-	err := Groups.Create(name, int(_cap), int(_save), int(_status), miss, evict)
+	if name == "" {
+		return &result{Ret:RET_ERROR, Data:"Group Name Not Empty!"}
+	}
+
+	if len(name) > 255 {
+		return &result{Ret:RET_ERROR, Data:"Group Name Too Long!"}
+	}
+
+	reg := "^[a-zA-Z0-9_]+$"
+	ok, err := regexp.MatchString(reg, name)
+	if !ok || err != nil {
+		if err != nil {
+			log.Println(err)
+		}
+		return &result{Ret:RET_ERROR, Data:"Group Name Not Valid! regexp:"+reg}
+	}
+
+	if _cap < 1 {
+		return &result{Ret:RET_ERROR, Data:"Group Capacity Too Small!"}
+	}
+
+	err = Groups.Create(name, int(_cap), int(_save), int(_status), miss, evict)
 
 	if err != nil {
 		return &result{Ret:RET_ERROR, Data:err}

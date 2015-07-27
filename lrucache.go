@@ -23,6 +23,7 @@ func main() {
 
 	cache.Setup(*dbdir)
 	cache.Groups.RecoveryFromFile()
+	go cache.Groups.Status(300)
 
 	go runHttp()
 
@@ -54,12 +55,10 @@ func runHttp() {
 	mux.HandleFunc("/multiple/group/create", cache.GroupCreatesAction)
 	mux.HandleFunc("/multiple/group/del", cache.GroupDelsAction)
 
-	log.Fatal(http.ListenAndServe(*addr, nil))
-
 	s := http.Server{
 		Addr: *addr,
 		Handler:mux,
-		MaxHeaderBytes: 1024 * 8,
+		MaxHeaderBytes: 1024 * 4,
 		ReadTimeout: 10 * time.Second,
 		WriteTimeout: 10 * time.Second,
 	}

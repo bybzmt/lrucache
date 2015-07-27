@@ -4,6 +4,7 @@ import (
 	"sync"
 	"errors"
 	"path/filepath"
+	"time"
 	"log"
 )
 
@@ -90,4 +91,13 @@ func (h *Hub) RecoveryFromFile() {
 	}
 }
 
+func (h *Hub) Status(sec time.Duration) {
+	c := time.Tick(sec * time.Second)
+	for _ = range c {
+		h.l.Lock()
+		num := len(h.hub)
+		h.l.Unlock()
 
+		log.Println("Status Groups num:", num)
+	}
+}
