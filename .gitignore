@@ -1,4 +1,7 @@
 
+#编译文件
+lrucache
+
 #所有数据库文件
 *.db
 *.db.new

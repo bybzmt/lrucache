@@ -22,6 +22,7 @@ type SavedGroup struct {
 }
 
 func copy_data(g *Group) (out *SavedGroup) {
+	out = new(SavedGroup)
 	out.Name = g.Name
 	out.SaveTick = g.saveTick
 	out.StatusTick = g.statusTick
@@ -41,7 +42,7 @@ func copy_data(g *Group) (out *SavedGroup) {
 func from_data(out *SavedGroup) *Group {
 	g := new(Group).Init(out.Name, out.MaxEntries, out.SaveTick, out.StatusTick, out.OnMiss, out.OnEvicted)
 	//反序添加
-	for i:= len(out.Entrys)-1; i>0; i-- {
+	for i:= len(out.Entrys)-1; i>=0; i-- {
 		g.cache.Add(out.Entrys[i].Key, out.Entrys[i].Value)
 	}
 	return g
@@ -76,7 +77,7 @@ func save_to_dbfile(g *Group) {
 	ok := rename_dbfile(dbfile)
 	if ok {
 		sec := float64(time.Now().Sub(t1) / time.Millisecond) / 1000
-		log.Printf("group:%s saved in %0.3fs\n", sec)
+		log.Printf("group:%s saved in %.3fs\n", g.Name, sec)
 	}
 }
 
@@ -104,7 +105,7 @@ func rename_dbfile(dbfile string) bool {
 }
 
 func Init_from_dbfile(dbfile string) (*Group, error) {
-	data := &SavedGroup{}
+	data := new(SavedGroup)
 
 	file, err := os.Open(dbfile)
 	if err != nil {
