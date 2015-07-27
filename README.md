@@ -10,7 +10,7 @@ cache中分不同的分组，每个分组有自己的容量和LRU维护
 
 访问的方式为http请求 .
 参数可以接受GET或POST方式
-反回JSON
+反回JSON `{err:0, data:data}`
 
 错误类型:
 * `0` 成功
@@ -18,8 +18,7 @@ cache中分不同的分组，每个分组有自己的容量和LRU维护
 * `2` 分组不存在
 * `3` key不存在
 
-各请求url介绍
-------------
+##各请求url介绍
 
 ###累加
 `/counter/incr`
@@ -68,8 +67,8 @@ cache中分不同的分组，每个分组有自己的容量和LRU维护
 * `saveTick`   定时保存同期，0 不定时保存
 * `statusTick` 定时统状态同期，0 不统计
 
+###删除一个分组
 /group/del
-删除一个分组
 
 参数
 * `group` 分组名
@@ -78,12 +77,11 @@ cache中分不同的分组，每个分组有自己的容量和LRU维护
 `/multiple/` 这个地址再接上面的， 如 `/multiple/cache/get` 
 参数是
 
------------
 	$data = array();
 	//参数与上面的一至
-	$data[] = array('group'=>'group', 'key'=>'key');
+	$data[] = array('group'=>'group1', 'key'=>'key1');
+	$data[] = array('group'=>'group2', 'key'=>'key2');
 	reqs = json_encode($data)
 
 	程序会返回一个与请求数量一样至的一个数组，里面是每个请求的反回
------------
 
