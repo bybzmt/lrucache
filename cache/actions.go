@@ -1,18 +1,18 @@
 package cache
 
 import (
-	"net/http"
 	"encoding/json"
+	"net/http"
 )
 
-func doMultiple(w http.ResponseWriter, r *http.Request, fn func (fe fetch) *result) {
+func doMultiple(w http.ResponseWriter, r *http.Request, fn func(fe fetch) *result) {
 	tmp := r.FormValue("reqs")
 
 	var ks []fetch
 
 	err := json.Unmarshal([]byte(tmp), ks)
 	if err != nil {
-		json.NewEncoder(w).Encode(result{Ret:RET_ERROR, Data:err})
+		json.NewEncoder(w).Encode(result{Ret: RET_ERROR, Data: err})
 		return
 	}
 
@@ -42,7 +42,7 @@ func IncrsAction(w http.ResponseWriter, r *http.Request) {
 		v := fe["val"]
 
 		return doIncr(g, k, v)
-	});
+	})
 }
 
 func SetAction(w http.ResponseWriter, r *http.Request) {
@@ -62,7 +62,7 @@ func SetsAction(w http.ResponseWriter, r *http.Request) {
 		v := fe["val"]
 
 		return doSet(g, k, v)
-	});
+	})
 }
 
 func GetAction(w http.ResponseWriter, r *http.Request) {
@@ -80,7 +80,7 @@ func GetsAction(w http.ResponseWriter, r *http.Request) {
 		k := fe["key"]
 
 		return doGet(g, k)
-	});
+	})
 }
 
 func HotAction(w http.ResponseWriter, r *http.Request) {
@@ -98,7 +98,7 @@ func HotsAction(w http.ResponseWriter, r *http.Request) {
 		n := fe["len"]
 
 		return doHot(g, n)
-	});
+	})
 }
 
 func DelAction(w http.ResponseWriter, r *http.Request) {
@@ -116,7 +116,7 @@ func DelsAction(w http.ResponseWriter, r *http.Request) {
 		k := fe["key"]
 
 		return doDel(g, k)
-	});
+	})
 }
 
 func GroupCreateAction(w http.ResponseWriter, r *http.Request) {
@@ -124,10 +124,9 @@ func GroupCreateAction(w http.ResponseWriter, r *http.Request) {
 	_len := r.FormValue("cap")
 	_save := r.FormValue("saveTick")
 	_status := r.FormValue("statusTick")
-	miss := r.FormValue("onMissCallback")
-	evict := r.FormValue("onEvictCallback")
+	_expire := r.FormValue("expire")
 
-	res := doGroupCreate(name, _len, _save, _status, miss, evict)
+	res := doGroupCreate(name, _len, _save, _status, _expire)
 
 	json.NewEncoder(w).Encode(res)
 }
@@ -138,11 +137,10 @@ func GroupCreatesAction(w http.ResponseWriter, r *http.Request) {
 		_len := fe["cap"]
 		_save := fe["saveTick"]
 		_status := fe["statusTick"]
-		miss := fe["onMissCallback"]
-		evict := fe["onEvictCallback"]
+		_expire := fe["expire"]
 
-		return doGroupCreate(name, _len, _save, _status, miss, evict)
-	});
+		return doGroupCreate(name, _len, _save, _status, _expire)
+	})
 }
 
 func GroupDelAction(w http.ResponseWriter, r *http.Request) {
@@ -158,5 +156,5 @@ func GroupDelsAction(w http.ResponseWriter, r *http.Request) {
 		name := fe["group"]
 
 		return doGroupDel(name)
-	});
+	})
 }

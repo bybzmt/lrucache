@@ -64,6 +64,7 @@ cache中分不同的分组，每个分组有自己的容量和LRU维护
 参数:
 * `group` 分组名
 * `cap`   分组容量
+* `expire` 过期时间
 * `saveTick`   定时保存同期，0 不定时保存
 * `statusTick` 定时统状态同期，0 不统计
 

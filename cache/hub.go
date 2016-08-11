@@ -1,18 +1,18 @@
 package cache
 
 import (
-	"sync"
 	"errors"
-	"path/filepath"
-	"time"
 	"log"
+	"path/filepath"
+	"sync"
+	"time"
 )
 
 var GroupExists = errors.New("GroupExists")
 var GroupNotExists = errors.New("GroupNotExists")
 
 type Hub struct {
-	l sync.Mutex
+	l   sync.Mutex
 	hub map[string]*Group
 }
 
@@ -21,7 +21,7 @@ func (h *Hub) Init() *Hub {
 	return h
 }
 
-func (h *Hub) Create(name string, maxEnteries, saveTick, statusTick int, miss, evict string) error {
+func (h *Hub) Create(name string, maxEnteries, saveTick, statusTick, expire_num int) error {
 	h.l.Lock()
 	defer h.l.Unlock()
 
@@ -29,7 +29,12 @@ func (h *Hub) Create(name string, maxEnteries, saveTick, statusTick int, miss, e
 		return GroupExists
 	}
 
-	g := new(Group).Init(name, maxEnteries, saveTick, statusTick, miss, evict)
+	expire := int64(expire_num)
+	if expire > 0 {
+		expire += time.Now().Unix()
+	}
+
+	g := new(Group).Init(name, maxEnteries, saveTick, statusTick, expire)
 	h.hub[name] = g
 
 	g.Run()
@@ -51,6 +56,7 @@ func (h *Hub) Remove(name string) error {
 
 	if g, ok := h.hub[name]; ok {
 		g.Stop()
+		delete_dbfile(g)
 		delete(h.hub, name)
 		return nil
 	}
@@ -93,10 +99,25 @@ func (h *Hub) RecoveryFromFile() {
 
 func (h *Hub) Status(sec time.Duration) {
 	c := time.Tick(sec * time.Second)
-	for _ = range c {
+	for now := range c {
+		unix := now.Unix()
+
 		h.l.Lock()
 		num := len(h.hub)
+
+		//查找过期的组
+		var expireName []string
+		for _, g := range h.hub {
+			if g.expire > 0 && g.expire < unix {
+				expireName = append(expireName, g.Name)
+			}
+		}
 		h.l.Unlock()
+
+		//删除过期的组
+		for _, name := range expireName {
+			h.Remove(name)
+		}
 
 		log.Println("Status Groups num:", num)
 	}

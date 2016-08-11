@@ -1,24 +1,23 @@
 package cache
 
 import (
-	"sync"
-	"path"
-	"os"
-	"time"
-	"log"
 	"encoding/gob"
+	"log"
+	"os"
+	"path"
+	"sync"
+	"time"
 )
 
 var SaveDir string
 
 type SavedGroup struct {
-	Name string
-	SaveTick int
+	Name       string
+	SaveTick   int
 	StatusTick int
 	MaxEntries int
-	OnMiss string
-	OnEvicted string
-	Entrys []Entry
+	Expire     int64
+	Entrys     []Entry
 }
 
 func copy_data(g *Group) (out *SavedGroup) {
@@ -27,28 +26,35 @@ func copy_data(g *Group) (out *SavedGroup) {
 	out.SaveTick = g.saveTick
 	out.StatusTick = g.statusTick
 	out.MaxEntries = g.cache.MaxEntries
-	out.OnMiss = g.miss_callback_url
-	out.OnEvicted = g.evict_callback_url
+	out.Expire = g.expire
 
 	out.Entrys = make([]Entry, 0, g.cache.Len())
 
-	g.cache.Each(func(key string, value interface{})bool{
-		out.Entrys = append(out.Entrys, Entry{Key:key, Value:value})
+	g.cache.Each(func(key string, value interface{}) bool {
+		out.Entrys = append(out.Entrys, Entry{Key: key, Value: value})
 		return true
 	})
 	return
 }
 
 func from_data(out *SavedGroup) *Group {
-	g := new(Group).Init(out.Name, out.MaxEntries, out.SaveTick, out.StatusTick, out.OnMiss, out.OnEvicted)
+	g := new(Group).Init(out.Name, out.MaxEntries, out.SaveTick, out.StatusTick, out.Expire)
 	//反序添加
-	for i:= len(out.Entrys)-1; i>=0; i-- {
+	for i := len(out.Entrys) - 1; i >= 0; i-- {
 		g.cache.Add(out.Entrys[i].Key, out.Entrys[i].Value)
 	}
 	return g
 }
 
 var saveLock sync.Mutex
+
+func delete_dbfile(g *Group) {
+	saveLock.Lock()
+	defer saveLock.Unlock()
+
+	dbfile := path.Join(SaveDir, g.Name) + ".db"
+	os.Remove(dbfile)
+}
 
 func save_to_dbfile(g *Group) {
 	saveLock.Lock()
@@ -76,20 +82,20 @@ func save_to_dbfile(g *Group) {
 
 	ok := rename_dbfile(dbfile)
 	if ok {
-		sec := float64(time.Now().Sub(t1) / time.Millisecond) / 1000
+		sec := float64(time.Now().Sub(t1)/time.Millisecond) / 1000
 		log.Printf("group:%s saved in %.3fs\n", g.Name, sec)
 	}
 }
 
 func rename_dbfile(dbfile string) bool {
 	//先把原文件移到old
-	err := os.Rename(dbfile, dbfile + ".old")
+	err := os.Rename(dbfile, dbfile+".old")
 	if err != nil && !os.IsNotExist(err) {
 		log.Println("move dbfile to old fail:", err)
 		return false
 	}
 	//把现临时文件移到dbfile
-	err = os.Rename(dbfile + ".new", dbfile)
+	err = os.Rename(dbfile+".new", dbfile)
 	if err != nil {
 		log.Println("move dbfile.new to dbfile fail:", err)
 		return false
