@@ -2,6 +2,7 @@ package cache
 
 import (
 	"log"
+	"sort"
 	"strconv"
 	"sync/atomic"
 	"time"
@@ -150,8 +151,22 @@ type HotVal struct {
 	Val  int64
 }
 
+type HotVals []HotVal
+
+func (h HotVals) Len() int {
+	return len(h)
+}
+
+func (h HotVals) Less(i, j int) bool {
+	return h[i].Val < h[j].Val
+}
+
+func (h HotVals) Swap(i, j int) {
+	h[i], h[j] = h[j], h[i]
+}
+
 func (g *Group) Hot(num int) []HotVal {
-	hot := make([]HotVal, num)
+	hot := make(HotVals, 0, g.cache.ll.Len())
 
 	g.cache.Each(func(key string, value interface{}) bool {
 		var val int64
@@ -162,26 +177,14 @@ func (g *Group) Hot(num int) []HotVal {
 			val, _ = strconv.ParseInt(tmp, 10, 64)
 		}
 
-		if val > hot[num-1].Val {
-			hot[num-1] = HotVal{Name: key, Val: val}
-			for i := num - 2; i >= 0; i-- {
-				if hot[i+1].Val > hot[i].Val {
-					hot[i+1], hot[i] = hot[i], hot[i+1]
-				} else {
-					break
-				}
-			}
-		}
+		hot = append(hot, HotVal{Name: key, Val: val})
+
 		return true
 	})
 
-	for i := num - 1; i >= 0; i-- {
-		if hot[i].Name != "" {
-			return hot[0 : i+1]
-		}
-	}
+	sort.Sort(hot)
 
-	return hot[0:0]
+	return hot[0:num]
 }
 
 func (g *Group) Remove(key string) {

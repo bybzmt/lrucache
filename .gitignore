@@ -1,6 +1,7 @@
 
 #编译文件
 lrucache
+testclient
 
 #所有数据库文件
 *.db
