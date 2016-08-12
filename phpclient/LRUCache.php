@@ -40,6 +40,36 @@ class LRUCache
 	}
 
 	/**
+	 * 增加指定key的值, 如果key不存在默认为0
+	 * 如果group不存在，自动尝试通过addAutoGroup添加的数据自动创建
+	 */
+	public function incrs(array $groups, array $keys, array $nums)
+	{
+		$params= array();
+		foreach ($groups as $idx => $group) {
+			$params[] = array(
+				'group' => $groups[$idx],
+				'key' => $keys[$idx],
+				'val' => $nums[$idx],
+			);
+		}
+
+		$res = $this->_doCall("/counter/incr", array(
+			'reqs' => json_encode($params),
+		));
+
+		foreach ($res['data'] as $idx => $_res) {
+			switch ($res['err']) {
+			case 2:
+				$this->_autoGroup($groups[$idx]);
+				$res[$idx] = $this->incr($groups[$idx], $keys[$idx], $nums[$idx]);
+			}
+		}
+
+		return $res;
+	}
+
+	/**
 	 * 将组里所有数据排序，取出最大的N个
 	 */
 	public function getHot($group, $len)
@@ -85,6 +115,27 @@ class LRUCache
 	}
 
 	/**
+	 * 得到指定key的值
+	 * 如果group不存在，自动尝试通过addAutoGroup添加的数据自动创建
+	 */
+	public function gets(array $groups, array $keys)
+	{
+		$params= array();
+		foreach ($groups as $idx => $group) {
+			$params[] = array(
+				'group' => $group,
+				'key' => $keys[$idx],
+			);
+		}
+
+		$res = $this->_doCall("/cache/get", array(
+			'reqs' => json_encode($params),
+		));
+
+		return $res;
+	}
+
+	/**
 	 * 设定指定key的值
 	 * 如果group不存在，自动尝试通过addAutoGroup添加的数据自动创建
 	 */
@@ -110,6 +161,36 @@ class LRUCache
 	}
 
 	/**
+	 * 设定指定key的值
+	 * 如果group不存在，自动尝试通过addAutoGroup添加的数据自动创建
+	 */
+	public function sets(array $groups, array $keys, array $vals)
+	{
+		$params= array();
+		foreach ($groups as $idx => $group) {
+			$params[] = array(
+				'group' => $group,
+				'key' => $keys[$idx],
+				'val' => $vals[$idx],
+			);
+		}
+
+		$res = $this->_doCall("/cache/set", array(
+			'reqs' => json_encode($params),
+		));
+
+		foreach ($res['data'] as $idx => $_res) {
+			switch ($res['err']) {
+			case 2:
+				$this->_autoGroup($groups[$idx]);
+				$res[$idx] = $this->set($groups[$idx], $keys[$idx], $vals[$idx]);
+			}
+		}
+
+		return $res;
+	}
+
+	/**
 	 * 删除指定key
 	 */
 	public function del($group, $key)
@@ -130,6 +211,27 @@ class LRUCache
 		default:
 			throw new Exception("LRUCache Unknown Error.");
 		}
+	}
+
+	/**
+	 * 删除指定key
+	 * 如果group不存在，自动尝试通过addAutoGroup添加的数据自动创建
+	 */
+	public function dels(array $groups, array $keys)
+	{
+		$params= array();
+		foreach ($groups as $idx => $group) {
+			$params[] = array(
+				'group' => $group,
+				'key' => $keys[$idx],
+			);
+		}
+
+		$res = $this->_doCall("/cache/set", array(
+			'reqs' => json_encode($params),
+		));
+
+		return $res;
 	}
 
 	private function _autoGroup($group)
