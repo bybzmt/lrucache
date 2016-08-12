@@ -65,6 +65,7 @@ func save_to_dbfile(g *Group) {
 	data := copy_data(g)
 	dbfile := path.Join(SaveDir, g.Name) + ".db"
 
+	os.Remove(dbfile + ".new")
 	file, err := os.Create(dbfile + ".new")
 	if err != nil {
 		log.Println("db can not write.")
@@ -89,6 +90,7 @@ func save_to_dbfile(g *Group) {
 
 func rename_dbfile(dbfile string) bool {
 	//先把原文件移到old
+	os.Remove(dbfile + ".old")
 	err := os.Rename(dbfile, dbfile+".old")
 	if err != nil && !os.IsNotExist(err) {
 		log.Println("move dbfile to old fail:", err)

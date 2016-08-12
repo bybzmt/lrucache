@@ -90,8 +90,12 @@ func doHot(name, num string) *result {
 	}
 
 	val, _ := strconv.ParseInt(num, 10, 32)
-	if val > 10000 {
-		val = 10000
+	if val > 100000 {
+		val = 100000
+	}
+
+	if val < 1 {
+		val = 1
 	}
 
 	hots := g.Hot(int(val))

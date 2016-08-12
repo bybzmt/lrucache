@@ -1,8 +1,8 @@
 package cache
 
 import (
-	"sync"
 	"container/list"
+	"sync"
 )
 
 type locker struct {
@@ -11,13 +11,13 @@ type locker struct {
 }
 
 type Cache struct {
-	keys sync.Mutex
+	keys       sync.Mutex
 	keysLocker map[string]*locker
 
 	MaxEntries int
-	ll    *list.List
-	lock sync.Mutex
-	cache map[string]*list.Element
+	ll         *list.List
+	lock       sync.Mutex
+	cache      map[string]*list.Element
 }
 
 type Entry struct {
@@ -66,7 +66,6 @@ func (c *Cache) getKeyLocker(key string) *locker {
 	return l
 }
 
-
 func (c *Cache) Add(key string, val interface{}) (evict string, has bool) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
@@ -76,7 +75,7 @@ func (c *Cache) Add(key string, val interface{}) (evict string, has bool) {
 		ele.Value.(*Entry).Value = val
 	}
 
-	en := &Entry{Key:key, Value:val}
+	en := &Entry{Key: key, Value: val}
 	ele := c.ll.PushFront(en)
 	c.cache[key] = ele
 
@@ -103,7 +102,7 @@ func (c *Cache) Get(key string) (interface{}, bool) {
 	return nil, false
 }
 
-func (c *Cache) Each(fn func(key string, val interface{})bool) {
+func (c *Cache) Each(fn func(key string, val interface{}) bool) {
 	c.lock.Lock()
 	ele := c.ll.Front()
 	c.lock.Unlock()
@@ -112,7 +111,7 @@ func (c *Cache) Each(fn func(key string, val interface{})bool) {
 		en := ele.Value.(*Entry)
 
 		if !fn(en.Key, en.Value) {
-			break;
+			break
 		}
 
 		//c.lock.Lock()

@@ -98,14 +98,12 @@ class LRUCache
 
 		switch ($res['err']) {
 		case 0:
-			return $res['data'];
+			return true;
 		case 1:
 			throw new Exception("LRUCache Error:".$res['data']);
 		case 2:
 			$this->_autoGroup($group);
 			return $this->set($group, $key);
-		case 3:
-			return null;
 		default:
 			throw new Exception("LRUCache Unknown Error.");
 		}
@@ -178,7 +176,7 @@ class LRUCache
 	/**
 	 * 删除组
 	 */
-	public function delGroup($name)
+	public function delGroup($group)
 	{
 		$res = $this->_doCall("/group/del", array(
 			'group' => $group,

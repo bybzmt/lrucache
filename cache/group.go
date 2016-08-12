@@ -47,6 +47,12 @@ func (g *Group) Stop() {
 }
 
 func (g *Group) SaveTick() {
+	defer func() {
+		if e := recover(); e != nil {
+			log.Println(e)
+		}
+	}()
+
 	c := time.Tick(time.Duration(g.saveTick) * time.Second)
 	for _ = range c {
 		if g.isClosed {
@@ -58,6 +64,12 @@ func (g *Group) SaveTick() {
 }
 
 func (g *Group) StatusTick() {
+	defer func() {
+		if e := recover(); e != nil {
+			log.Println(e)
+		}
+	}()
+
 	c := time.Tick(time.Duration(g.saveTick) * time.Second)
 	for _ = range c {
 		if g.isClosed {
@@ -71,8 +83,13 @@ func (g *Group) StatusTick() {
 		incr := atomic.SwapInt32(&g.count_incr, 0)
 		remove := atomic.SwapInt32(&g.count_remove, 0)
 
-		log.Printf("group:%s status get:%d hit:%d%% set:%d incr:%d del:%d evicted:%d\n",
-			g.Name, miss+hit, hit*100/(miss+hit), set, incr, remove, evict)
+		var _hit int32
+		if miss+hit > 0 {
+			_hit = hit * 100 / (miss + hit)
+		}
+
+		log.Printf("group:%s status %ds, get:%d hit:%d%% set:%d incr:%d del:%d evicted:%d\n",
+			g.Name, g.saveTick, miss+hit, _hit, set, incr, remove, evict)
 	}
 }
 
@@ -109,7 +126,7 @@ func (g *Group) Incr(key string, val int64) int64 {
 	evict, has := g.cache.Add(key, old+val)
 	if has {
 		atomic.AddInt32(&g.count_evicted, 1)
-		go g.Remove(evict)
+		g.cache.Remove(evict)
 	}
 
 	return old + val
@@ -124,13 +141,13 @@ func (g *Group) Set(key string, val interface{}) {
 	evict, has := g.cache.Add(key, val)
 	if has {
 		atomic.AddInt32(&g.count_evicted, 1)
-		go g.Remove(evict)
+		g.cache.Remove(evict)
 	}
 }
 
 type HotVal struct {
-	name string
-	val  int64
+	Name string
+	Val  int64
 }
 
 func (g *Group) Hot(num int) []HotVal {
@@ -145,10 +162,10 @@ func (g *Group) Hot(num int) []HotVal {
 			val, _ = strconv.ParseInt(tmp, 10, 64)
 		}
 
-		if val > hot[num-1].val {
-			hot[num-1] = HotVal{name: key, val: val}
-			for i := num - 2; i > 0; i-- {
-				if hot[i+1].val > hot[i].val {
+		if val > hot[num-1].Val {
+			hot[num-1] = HotVal{Name: key, Val: val}
+			for i := num - 2; i >= 0; i-- {
+				if hot[i+1].Val > hot[i].Val {
 					hot[i+1], hot[i] = hot[i], hot[i+1]
 				} else {
 					break
@@ -158,13 +175,13 @@ func (g *Group) Hot(num int) []HotVal {
 		return true
 	})
 
-	for i := 0; i < num; i++ {
-		if hot[i].name != "" {
-			return hot[i:]
+	for i := num - 1; i >= 0; i-- {
+		if hot[i].Name != "" {
+			return hot[0 : i+1]
 		}
 	}
 
-	return nil
+	return hot[0:0]
 }
 
 func (g *Group) Remove(key string) {

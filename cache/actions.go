@@ -105,7 +105,7 @@ func DelAction(w http.ResponseWriter, r *http.Request) {
 	name := r.FormValue("group")
 	key := r.FormValue("key")
 
-	res := doHot(name, key)
+	res := doDel(name, key)
 
 	json.NewEncoder(w).Encode(res)
 }
