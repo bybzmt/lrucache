@@ -28,12 +28,14 @@ func copy_data(g *Group) (out *SavedGroup) {
 	out.MaxEntries = g.cache.MaxEntries
 	out.Expire = g.expire
 
-	out.Entrys = make([]Entry, 0, g.cache.Len())
+	g.cache.lock.Lock()
+	out.Entrys = make([]Entry, 0, g.cache.ll.Len())
 
 	g.cache.Each(func(key string, value interface{}) bool {
 		out.Entrys = append(out.Entrys, Entry{Key: key, Value: value})
 		return true
 	})
+	g.cache.lock.Unlock()
 	return
 }
 

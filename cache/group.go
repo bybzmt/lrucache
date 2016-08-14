@@ -95,8 +95,8 @@ func (g *Group) StatusTick() {
 }
 
 func (g *Group) Get(key string) (interface{}, bool) {
-	g.cache.LockKey(key)
-	defer g.cache.UnlockKey(key)
+	g.cache.lock.Lock()
+	defer g.cache.lock.Unlock()
 
 	val, ok := g.cache.Get(key)
 	if ok {
@@ -109,8 +109,8 @@ func (g *Group) Get(key string) (interface{}, bool) {
 }
 
 func (g *Group) Incr(key string, val int64) int64 {
-	g.cache.LockKey(key)
-	defer g.cache.UnlockKey(key)
+	g.cache.lock.Lock()
+	defer g.cache.lock.Unlock()
 
 	atomic.AddInt32(&g.count_incr, 1)
 
@@ -134,8 +134,8 @@ func (g *Group) Incr(key string, val int64) int64 {
 }
 
 func (g *Group) Set(key string, val interface{}) {
-	g.cache.LockKey(key)
-	defer g.cache.UnlockKey(key)
+	g.cache.lock.Lock()
+	defer g.cache.lock.Unlock()
 
 	atomic.AddInt32(&g.count_set, 1)
 
@@ -147,8 +147,8 @@ func (g *Group) Set(key string, val interface{}) {
 }
 
 type HotVal struct {
-	Name string
-	Val  int64
+	Name string `json:"name"`
+	Val  int64 `json:"val"`
 }
 
 type HotVals []HotVal
@@ -166,6 +166,8 @@ func (h HotVals) Swap(i, j int) {
 }
 
 func (g *Group) Hot(num int) []HotVal {
+
+	g.cache.lock.Lock()
 	hot := make(HotVals, 0, g.cache.ll.Len())
 
 	g.cache.Each(func(key string, value interface{}) bool {
@@ -181,15 +183,20 @@ func (g *Group) Hot(num int) []HotVal {
 
 		return true
 	})
+	g.cache.lock.Unlock()
 
-	sort.Sort(hot)
+	sort.Sort(sort.Reverse(hot))
+
+	if len(hot) < num {
+		num = len(hot)
+	}
 
 	return hot[0:num]
 }
 
 func (g *Group) Remove(key string) {
-	g.cache.LockKey(key)
-	defer g.cache.UnlockKey(key)
+	g.cache.lock.Lock()
+	defer g.cache.lock.Unlock()
 
 	atomic.AddInt32(&g.count_remove, 1)
 

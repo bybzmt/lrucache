@@ -15,6 +15,14 @@ class LRUCache
 	}
 
 	/**
+	 * 添加需要自动创建的组
+	 */
+	public function addAutoGroup($group, $cap, $saveTick, $statusTick, $expire)
+	{
+		$this->_groups[$group] = array($group, $cap, $saveTick, $statusTick, $expire);
+	}
+
+	/**
 	 * 增加指定key的值, 如果key不存在默认为0
 	 * 如果group不存在，自动尝试通过addAutoGroup添加的数据自动创建
 	 */
@@ -43,26 +51,29 @@ class LRUCache
 	 * 增加指定key的值, 如果key不存在默认为0
 	 * 如果group不存在，自动尝试通过addAutoGroup添加的数据自动创建
 	 */
-	public function incrs(array $groups, array $keys, array $nums)
+	public function incrs(array $reqs)
 	{
 		$params= array();
-		foreach ($groups as $idx => $group) {
+		foreach ($reqs as $req) {
+			$req = array_map('strval', $req);
 			$params[] = array(
-				'group' => $groups[$idx],
-				'key' => $keys[$idx],
-				'val' => $nums[$idx],
+				'group' => $req[0],
+				'key' => $req[1],
+				'val' => $req[2],
 			);
 		}
 
-		$res = $this->_doCall("/counter/incr", array(
+		$res = $this->_doCall("/multiple/counter/incr", array(
 			'reqs' => json_encode($params),
 		));
 
-		foreach ($res['data'] as $idx => $_res) {
-			switch ($res['err']) {
-			case 2:
-				$this->_autoGroup($groups[$idx]);
-				$res[$idx] = $this->incr($groups[$idx], $keys[$idx], $nums[$idx]);
+		if ($res['err'] == 0) {
+			foreach ($res['data'] as $idx => $_res) {
+				switch ($_res['err']) {
+				case 2:
+					$this->_autoGroup($reqs[$idx][0]);
+					$res[$idx] = $this->incr($reqs[$idx][0], $reqs[$idx][1], $reqs[$idx][2]);
+				}
 			}
 		}
 
@@ -92,6 +103,27 @@ class LRUCache
 	}
 
 	/**
+	 * 批量得到排序
+	 */
+	public function getHots(array $reqs)
+	{
+		$params= array();
+		foreach ($reqs as $req) {
+			$req = array_map('strval', $req);
+			$params[] = array(
+				'group' => $req[0],
+				'len' => $req[1],
+			);
+		}
+
+		$res = $this->_doCall("/multiple/counter/hot", array(
+			'reqs' => json_encode($params),
+		));
+
+		return $res;
+	}
+
+	/**
 	 * 得到指定key的值
 	 */
 	public function get($group, $key)
@@ -116,19 +148,19 @@ class LRUCache
 
 	/**
 	 * 得到指定key的值
-	 * 如果group不存在，自动尝试通过addAutoGroup添加的数据自动创建
 	 */
-	public function gets(array $groups, array $keys)
+	public function gets(array $reqs)
 	{
 		$params= array();
-		foreach ($groups as $idx => $group) {
+		foreach ($reqs as $req) {
+			$req = array_map('strval', $req);
 			$params[] = array(
-				'group' => $group,
-				'key' => $keys[$idx],
+				'group' => $req[0],
+				'key' => $req[1],
 			);
 		}
 
-		$res = $this->_doCall("/cache/get", array(
+		$res = $this->_doCall("/multiple/cache/get", array(
 			'reqs' => json_encode($params),
 		));
 
@@ -154,7 +186,7 @@ class LRUCache
 			throw new Exception("LRUCache Error:".$res['data']);
 		case 2:
 			$this->_autoGroup($group);
-			return $this->set($group, $key);
+			return $this->set($group, $key, $val);
 		default:
 			throw new Exception("LRUCache Unknown Error.");
 		}
@@ -164,28 +196,31 @@ class LRUCache
 	 * 设定指定key的值
 	 * 如果group不存在，自动尝试通过addAutoGroup添加的数据自动创建
 	 */
-	public function sets(array $groups, array $keys, array $vals)
+	public function sets(array $reqs)
 	{
 		$params= array();
-		foreach ($groups as $idx => $group) {
+		foreach ($reqs as $req) {
+			$req = array_map('strval', $req);
 			$params[] = array(
-				'group' => $group,
-				'key' => $keys[$idx],
-				'val' => $vals[$idx],
+				'group' => $req[0],
+				'key' => $req[1],
+				'val' => $req[2],
 			);
 		}
 
-		$res = $this->_doCall("/cache/set", array(
+		$res = $this->_doCall("/multiple/cache/set", array(
 			'reqs' => json_encode($params),
 		));
 
+		if ($res['err'] == 0) {
 		foreach ($res['data'] as $idx => $_res) {
-			switch ($res['err']) {
+			switch ($_res['err']) {
 			case 2:
-				$this->_autoGroup($groups[$idx]);
-				$res[$idx] = $this->set($groups[$idx], $keys[$idx], $vals[$idx]);
+				$this->_autoGroup($reqs[$idx][0]);
+				$res[$idx] = $this->set($reqs[$idx][0], $reqs[$idx][1], $reqs[$idx][2]);
 			}
 		}
+}
 
 		return $res;
 	}
@@ -215,19 +250,18 @@ class LRUCache
 
 	/**
 	 * 删除指定key
-	 * 如果group不存在，自动尝试通过addAutoGroup添加的数据自动创建
 	 */
-	public function dels(array $groups, array $keys)
+	public function dels(array $reqs)
 	{
 		$params= array();
-		foreach ($groups as $idx => $group) {
+		foreach ($reqs as $req) {
 			$params[] = array(
-				'group' => $group,
-				'key' => $keys[$idx],
+				'group' => $req[0],
+				'key' => $req[1],
 			);
 		}
 
-		$res = $this->_doCall("/cache/set", array(
+		$res = $this->_doCall("/multiple/cache/set", array(
 			'reqs' => json_encode($params),
 		));
 
@@ -243,13 +277,6 @@ class LRUCache
 		call_user_func_array(array($this, 'createGroup'), $this->_groups[$group]);
 	}
 
-	/**
-	 * 添加需要自动创建的组
-	 */
-	public function addAutoGroup($group, $cap, $saveTick, $statusTick, $expire)
-	{
-		$this->_groups[$group] = array($group, $cap, $saveTick, $statusTick, $expire);
-	}
 
 	/**
 	 * 手动创建组
@@ -293,6 +320,25 @@ class LRUCache
 		default:
 			throw new Exception("LRUCache Unknown Error.");
 		}
+	}
+
+	/**
+	 * 指量删除组
+	 */
+	public function delGroups(array $reqs)
+	{
+		$params= array();
+		foreach ($reqs as $req) {
+			$params[] = array(
+				'group' => $req[0],
+			);
+		}
+
+		$res = $this->_doCall("/multiple/group/del", array(
+			'reqs' => json_encode($params),
+		));
+
+		return $res;
 	}
 
 	//进行网络请求
