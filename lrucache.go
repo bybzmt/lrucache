@@ -49,9 +49,9 @@ func runHttp() {
 
 	mux.HandleFunc("/multiple/counter/hot", cache.HotsAction)
 	mux.HandleFunc("/multiple/counter/incr", cache.IncrsAction)
-	mux.HandleFunc("/multiple/cache/set", cache.SetAction)
-	mux.HandleFunc("/multiple/cache/get", cache.GetAction)
-	mux.HandleFunc("/multiple/cache/del", cache.DelAction)
+	mux.HandleFunc("/multiple/cache/set", cache.SetsAction)
+	mux.HandleFunc("/multiple/cache/get", cache.GetsAction)
+	mux.HandleFunc("/multiple/cache/del", cache.DelsAction)
 	mux.HandleFunc("/multiple/group/create", cache.GroupCreatesAction)
 	mux.HandleFunc("/multiple/group/del", cache.GroupDelsAction)
 

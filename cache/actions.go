@@ -10,9 +10,9 @@ func doMultiple(w http.ResponseWriter, r *http.Request, fn func(fe fetch) *resul
 
 	var ks []fetch
 
-	err := json.Unmarshal([]byte(tmp), ks)
+	err := json.Unmarshal([]byte(tmp), &ks)
 	if err != nil {
-		json.NewEncoder(w).Encode(result{Ret: RET_ERROR, Data: err})
+		json.NewEncoder(w).Encode(result{Ret: RET_ERROR, Data: err.Error()})
 		return
 	}
 
@@ -22,7 +22,7 @@ func doMultiple(w http.ResponseWriter, r *http.Request, fn func(fe fetch) *resul
 		res[i] = fn(fe)
 	}
 
-	json.NewEncoder(w).Encode(res)
+	json.NewEncoder(w).Encode(result{Ret: RET_SUCCESS, Data: res})
 }
 
 func IncrAction(w http.ResponseWriter, r *http.Request) {

@@ -33,46 +33,11 @@ func (c *Cache) Init(maxEntries int) *Cache {
 	return c
 }
 
-func (c *Cache) LockKey(key string) {
-	l := c.getKeyLocker(key)
-	l.Lock()
-}
-
-func (c *Cache) UnlockKey(key string) {
-	c.keys.Lock()
-	defer c.keys.Unlock()
-
-	l, ok := c.keysLocker[key]
-	if ok {
-		defer l.Unlock()
-
-		l.num--
-		if l.num < 1 {
-			delete(c.keysLocker, key)
-		}
-	}
-}
-
-func (c *Cache) getKeyLocker(key string) *locker {
-	c.keys.Lock()
-	defer c.keys.Unlock()
-
-	l, ok := c.keysLocker[key]
-	if !ok {
-		l = &locker{}
-		c.keysLocker[key] = l
-	}
-	l.num++
-	return l
-}
-
 func (c *Cache) Add(key string, val interface{}) (evict string, has bool) {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-
 	if ele, ok := c.cache[key]; ok {
 		c.ll.MoveToFront(ele)
 		ele.Value.(*Entry).Value = val
+		return
 	}
 
 	en := &Entry{Key: key, Value: val}
@@ -91,9 +56,6 @@ func (c *Cache) Add(key string, val interface{}) (evict string, has bool) {
 }
 
 func (c *Cache) Get(key string) (interface{}, bool) {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-
 	if ele, hit := c.cache[key]; hit {
 		c.ll.MoveToFront(ele)
 		return ele.Value.(*Entry).Value, true
@@ -103,37 +65,19 @@ func (c *Cache) Get(key string) (interface{}, bool) {
 }
 
 func (c *Cache) Each(fn func(key string, val interface{}) bool) {
-	c.lock.Lock()
-	ele := c.ll.Front()
-	c.lock.Unlock()
-
-	for ele != nil {
+	for key, ele := range c.cache {
 		en := ele.Value.(*Entry)
 
-		if !fn(en.Key, en.Value) {
+		if !fn(key, en.Value) {
 			break
 		}
-
-		//c.lock.Lock()
-		ele = ele.Next()
-		//c.lock.Unlock()
 	}
 }
 
 func (c *Cache) Remove(key string) {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-
 	if ele, hit := c.cache[key]; hit {
 		c.ll.Remove(ele)
 		kv := ele.Value.(*Entry)
 		delete(c.cache, kv.Key)
 	}
-}
-
-func (c *Cache) Len() int {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-
-	return c.ll.Len()
 }

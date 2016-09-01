@@ -41,7 +41,7 @@ func doIncr(name, key, val string) *result {
 
 	g, ok := Groups.Get(name)
 	if !ok {
-		return &result{Ret: RET_GROUP_NOT_EXISTS, Data: GroupNotExists}
+		return &result{Ret: RET_GROUP_NOT_EXISTS, Data: GroupNotExists.Error()}
 	}
 
 	_val, _ := strconv.ParseInt(val, 10, 64)
@@ -61,7 +61,7 @@ func doSet(name, key, val string) *result {
 
 	g, ok := Groups.Get(name)
 	if !ok {
-		return &result{Ret: RET_GROUP_NOT_EXISTS, Data: GroupNotExists}
+		return &result{Ret: RET_GROUP_NOT_EXISTS, Data: GroupNotExists.Error()}
 	}
 
 	g.Set(key, val)
@@ -72,21 +72,21 @@ func doSet(name, key, val string) *result {
 func doGet(name, key string) *result {
 	g, ok := Groups.Get(name)
 	if !ok {
-		return &result{Ret: RET_GROUP_NOT_EXISTS, Data: GroupNotExists}
+		return &result{Ret: RET_GROUP_NOT_EXISTS, Data: GroupNotExists.Error()}
 	}
 
 	data, ok := g.Get(key)
 	if ok {
 		return &result{Ret: RET_SUCCESS, Data: data}
 	} else {
-		return &result{Ret: RET_KEY_NOT_EXISTS, Data: KeyNotExists}
+		return &result{Ret: RET_KEY_NOT_EXISTS, Data: KeyNotExists.Error()}
 	}
 }
 
 func doHot(name, num string) *result {
 	g, ok := Groups.Get(name)
 	if !ok {
-		return &result{Ret: RET_GROUP_NOT_EXISTS, Data: GroupNotExists}
+		return &result{Ret: RET_GROUP_NOT_EXISTS, Data: GroupNotExists.Error()}
 	}
 
 	val, _ := strconv.ParseInt(num, 10, 32)
@@ -106,7 +106,7 @@ func doHot(name, num string) *result {
 func doDel(name, key string) *result {
 	g, ok := Groups.Get(name)
 	if !ok {
-		return &result{Ret: RET_GROUP_NOT_EXISTS, Data: GroupNotExists}
+		return &result{Ret: RET_GROUP_NOT_EXISTS, Data: GroupNotExists.Error()}
 	}
 
 	g.Remove(key)
@@ -144,7 +144,7 @@ func doGroupCreate(name, num, save, status, expire string) *result {
 	err = Groups.Create(name, int(_cap), int(_save), int(_status), int(_expire))
 
 	if err != nil {
-		return &result{Ret: RET_ERROR, Data: err}
+		return &result{Ret: RET_ERROR, Data: err.Error()}
 	} else {
 		return &result{Ret: RET_SUCCESS}
 	}
