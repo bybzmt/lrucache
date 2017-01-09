@@ -154,7 +154,7 @@ func doGroupDel(name string) *result {
 	err := Groups.Remove(name)
 
 	if err != nil {
-		return &result{Ret: RET_ERROR, Data: err}
+		return &result{Ret: RET_ERROR, Data: err.Error()}
 	} else {
 		return &result{Ret: RET_SUCCESS}
 	}
