@@ -295,8 +295,9 @@ class LRUCache
 		case 0:
 			return true;
 		case 1:
-			throw new Exception("LRUCache Error: ". $res['data']);
-		case 2:
+			throw new Exception("LRUCache Error: ". var_export($res,true));
+		case 4:
+			//己存在
 			return false;
 		default:
 			throw new Exception("LRUCache Unknown Error.");

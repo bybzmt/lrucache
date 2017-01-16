@@ -15,6 +15,7 @@ const (
 	RET_ERROR            = 1 //1 错误
 	RET_GROUP_NOT_EXISTS = 2 //2 分组不存成
 	RET_KEY_NOT_EXISTS   = 3 //3 Key不存在
+	RET_GROUP_EXISTS     = 4 //4 分组己存成
 )
 
 type result struct {
@@ -144,7 +145,7 @@ func doGroupCreate(name, num, save, status, expire string) *result {
 	err = Groups.Create(name, int(_cap), int(_save), int(_status), int(_expire))
 
 	if err != nil {
-		return &result{Ret: RET_ERROR, Data: err.Error()}
+		return &result{Ret: RET_GROUP_EXISTS, Data: err.Error()}
 	} else {
 		return &result{Ret: RET_SUCCESS}
 	}
